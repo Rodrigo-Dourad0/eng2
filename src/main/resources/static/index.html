@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Usuários - IFBA Eng2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="py-4">
+    <div class="container">
+        <!-- Cabeçalho -->
+        <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+            <div>
+                <h1 class="h3 text-primary mb-1">
+                    <i class="bi bi-people-fill me-2"></i>Gerenciamento de Usuários
+                </h1>
+                <p class="text-muted mb-0">Interface Web conectada à API REST Spring Boot & H2 Database</p>
+            </div>
+            <div>
+                <a href="/h2-console" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-database me-1"></i> Console H2
+                </a>
+            </div>
+        </header>
+
+        <!-- Alertas de Mensagens -->
+        <div id="alertContainer"></div>
+
+        <div class="row g-4">
+            <!-- Formulário de Cadastro / Edição -->
+            <div class="col-lg-4">
+                <div class="card border-0">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="card-title mb-0" id="formTitle">
+                            <i class="bi bi-person-plus-fill me-2"></i>Novo Usuário
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="usuarioForm">
+                            <input type="hidden" id="usuarioId">
+
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nome" required placeholder="Ex: Maria Silva">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telefone" class="form-label">Telefone <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="telefone" required placeholder="Ex: (71) 99999-8888">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="endereco" class="form-label">Endereço <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="endereco" rows="3" required placeholder="Ex: Rua das Flores, 123, Salvador - BA"></textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                    <i class="bi bi-check-circle me-1"></i> Salvar
+                                </button>
+                                <button type="button" class="btn btn-light" id="btnCancelar" style="display: none;" onclick="limparFormulario()">
+                                    <i class="bi bi-x-circle me-1"></i> Cancelar Edição
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listagem de Usuários -->
+            <div class="col-lg-8">
+                <div class="card border-0">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 text-dark">
+                            <i class="bi bi-list-ul me-2"></i>Usuários Cadastrados
+                        </h5>
+                        <div class="input-group input-group-sm w-50">
+                            <input type="text" id="inputBusca" class="form-control" placeholder="Buscar por nome...">
+                            <button class="btn btn-outline-primary" type="button" onclick="buscarUsuarios()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="limparBusca()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Telefone</th>
+                                        <th>Endereço</th>
+                                        <th class="text-center" style="width: 130px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaUsuarios">
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">Carregando usuários...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript para consumo da API REST -->
+    <script>
+        const API_URL = '/api/usuarios';
+
+        // Carrega os usuários ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarUsuarios();
+            document.getElementById('usuarioForm').addEventListener('submit', salvarUsuario);
+            document.getElementById('inputBusca').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') buscarUsuarios();
+            });
+        });
+
+        // Exibe alertas dinâmicos
+        function exibirAlerta(mensagem, tipo = 'success') {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                    ${mensagem}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(container.querySelector('.alert'));
+                if (alert) alert.close();
+            }, 5000);
+        }
+
+        // Listar todos os usuários
+        async function carregarUsuarios() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Falha ao carregar usuários.');
+                const usuarios = await response.json();
+                renderizarTabela(usuarios);
+            } catch (error) {
+                exibirAlerta('Erro ao consultar a API: ' + error.message, 'danger');
+            }
+        }
+
+        // Buscar usuários pelo nome
+        async function buscarUsuarios() {
+            const termo = document.getElementById('inputBusca').value.trim();
+            try {
+                const url = termo ? `${API_URL}?nome=${encodeURIComponent(termo)}` : API_URL;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Falha na busca de usuários.');
+                const usuarios = await response.json();
+                renderizarTabela(usuarios);
+            } catch (error) {
+                exibirAlerta('Erro ao filtrar usuários: ' + error.message, 'danger');
+            }
+        }
+
+        function limparBusca() {
+            document.getElementById('inputBusca').value = '';
+            carregarUsuarios();
+        }
+
+        // Renderiza lista na tabela
+        function renderizarTabela(usuarios) {
+            const tbody = document.getElementById('tabelaUsuarios');
+            if (!usuarios || usuarios.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            Nenhum usuário cadastrado.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = usuarios.map(usuario => `
+                <tr>
+                    <td>
+                        <div class="fw-semibold text-dark">${escapeHtml(usuario.nome)}</div>
+                        <small class="text-muted font-monospace" style="font-size: 0.75rem;">${usuario.id}</small>
+                    </td>
+                    <td>${escapeHtml(usuario.telefone)}</td>
+                    <td>${escapeHtml(usuario.endereco)}</td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-primary btn-sm me-1" title="Editar" onclick='iniciarEdicao(${JSON.stringify(usuario)})'>
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" title="Excluir" onclick="deletarUsuario('${usuario.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Criar ou atualizar usuário
+        async function salvarUsuario(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('usuarioId').value;
+            const dados = {
+                nome: document.getElementById('nome').value.trim(),
+                telefone: document.getElementById('telefone').value.trim(),
+                endereco: document.getElementById('endereco').value.trim()
+            };
+
+            const isEdicao = Boolean(id);
+            const url = isEdicao ? `${API_URL}/${id}` : API_URL;
+            const method = isEdicao ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!response.ok) {
+                    const erro = await response.json();
+                    const msg = erro.campos ? Object.values(erro.campos).join(', ') : (erro.mensagem || 'Erro na operação.');
+                    throw new Error(msg);
+                }
+
+                exibirAlerta(`Usuário ${isEdicao ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
+                limparFormulario();
+                carregarUsuarios();
+            } catch (error) {
+                exibirAlerta('Erro ao salvar: ' + error.message, 'danger');
+            }
+        }
+
+        // Inicia o modo de edição no formulário
+        function iniciarEdicao(usuario) {
+            document.getElementById('usuarioId').value = usuario.id;
+            document.getElementById('nome').value = usuario.nome;
+            document.getElementById('telefone').value = usuario.telefone;
+            document.getElementById('endereco').value = usuario.endereco;
+
+            document.getElementById('formTitle').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Usuário';
+            document.getElementById('btnSalvar').innerHTML = '<i class="bi bi-check-circle me-1"></i> Atualizar';
+            document.getElementById('btnCancelar').style.display = 'block';
+        }
+
+        // Restaura formulário para criação
+        function limparFormulario() {
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('usuarioForm').reset();
+            document.getElementById('formTitle').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Novo Usuário';
+            document.getElementById('btnSalvar').innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar';
+            document.getElementById('btnCancelar').style.display = 'none';
+        }
+
+        // Excluir usuário
+        async function deletarUsuario(id) {
+            if (!confirm('Deseja realmente excluir este usuário?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Não foi possível excluir o usuário.');
+
+                exibirAlerta('Usuário excluído com sucesso!', 'success');
+                carregarUsuarios();
+            } catch (error) {
+                exibirAlerta('Erro ao excluir: ' + error.message, 'danger');
+            }
+        }
+
+        // Função de escape para prevenir XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag));
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
