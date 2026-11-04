@@ -32,9 +32,27 @@ public class Usuario extends PersistenceEntity {
     private String nome;
 
     /**
-     * Número de telefone para contato.
+     * CPF do usuário (único e obrigatório).
      */
-    @Column(name = "telefone", nullable = false, length = 20)
+    @Column(name = "cpf", nullable = false, unique = true, length = 14)
+    private String cpf;
+
+    /**
+     * E-mail de contato do usuário (único e obrigatório).
+     */
+    @Column(name = "email", nullable = false, unique = true, length = 150)
+    private String email;
+
+    /**
+     * Senha de acesso do usuário (obrigatório).
+     */
+    @Column(name = "senha", nullable = false, length = 255)
+    private String senha;
+
+    /**
+     * Número de telefone para contato (opcional).
+     */
+    @Column(name = "telefone", nullable = true, length = 20)
     private String telefone;
 
     /**

@@ -54,6 +54,9 @@ class UsuarioServiceTest {
 
         usuario = Usuario.builder()
                 .nome("Carlos Silva")
+                .cpf("123.456.789-00")
+                .email("carlos@teste.com")
+                .senha("123456")
                 .telefone("71999998888")
                 .endereco("Rua das Acácias, 123")
                 .build();
@@ -61,6 +64,9 @@ class UsuarioServiceTest {
 
         usuarioRequestDTO = UsuarioRequestDTO.builder()
                 .nome("Carlos Silva")
+                .cpf("123.456.789-00")
+                .email("carlos@teste.com")
+                .senha("123456")
                 .telefone("71999998888")
                 .endereco("Rua das Acácias, 123")
                 .build();
@@ -82,10 +88,34 @@ class UsuarioServiceTest {
 
         // [Asserção 2/5]: assertEquals - compara se o valor esperado é igual ao retornado
         assertEquals(usuario.getNome(), resposta.getNome());
+        assertEquals(usuario.getCpf(), resposta.getCpf());
+        assertEquals(usuario.getEmail(), resposta.getEmail());
         assertEquals(usuario.getTelefone(), resposta.getTelefone());
         assertEquals(usuario.getEndereco(), resposta.getEndereco());
 
         // Verify: confirma que save() foi chamado exatamente 1 vez
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("Deve atualizar usuário existente com sucesso")
+    void deveAtualizarUsuarioComSucesso() {
+        // Arrange: simula busca e save
+        when(usuarioRepository.findById(idUsuario)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        // Act: executa atualização
+        UsuarioResponseDTO resposta = usuarioService.atualizar(idUsuario, usuarioRequestDTO);
+
+        // Assert: valida dados atualizados
+        assertNotNull(resposta);
+        assertEquals(usuario.getNome(), resposta.getNome());
+        assertEquals(usuario.getCpf(), resposta.getCpf());
+        assertEquals(usuario.getEmail(), resposta.getEmail());
+        assertEquals(usuario.getTelefone(), resposta.getTelefone());
+        assertEquals(usuario.getEndereco(), resposta.getEndereco());
+
+        verify(usuarioRepository, times(1)).findById(idUsuario);
         verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 
@@ -101,7 +131,9 @@ class UsuarioServiceTest {
         // Assert: valida os dados retornados
         assertNotNull(resposta);
         assertEquals(idUsuario, resposta.getId());
-        assertEquals("Carlos", resposta.getNome());
+        assertEquals("Carlos Silva", resposta.getNome());
+        assertEquals(usuario.getCpf(), resposta.getCpf());
+        assertEquals(usuario.getEmail(), resposta.getEmail());
 
         verify(usuarioRepository, times(1)).findById(idUsuario);
     }

@@ -59,8 +59,24 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="telefone" class="form-label">Telefone <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="telefone" required placeholder="Ex: (71) 99999-8888">
+                                <label for="cpf" class="form-label">CPF <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cpf" required placeholder="Ex: 000.000.000-00" maxlength="14">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">E-mail <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" required placeholder="Ex: maria@email.com">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="senha" class="form-label">Senha <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="senha" required minlength="6" placeholder="Mínimo 6 caracteres">
+                                <div class="form-text" id="senhaAjuda">A senha deve ter no mínimo 6 caracteres.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="telefone" class="form-label">Telefone <span class="text-muted fw-normal">(opcional)</span></label>
+                                <input type="text" class="form-control" id="telefone" placeholder="Ex: (71) 99999-8888" maxlength="20">
                             </div>
 
                             <div class="mb-3">
@@ -104,6 +120,8 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Nome</th>
+                                        <th>CPF</th>
+                                        <th>E-mail</th>
                                         <th>Telefone</th>
                                         <th>Endereço</th>
                                         <th class="text-center" style="width: 130px;">Ações</th>
@@ -111,7 +129,7 @@
                                 </thead>
                                 <tbody id="tabelaUsuarios">
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-muted">Carregando usuários...</td>
+                                        <td colspan="6" class="text-center py-4 text-muted">Carregando usuários...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -132,6 +150,38 @@
             document.getElementById('usuarioForm').addEventListener('submit', salvarUsuario);
             document.getElementById('inputBusca').addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') buscarUsuarios();
+            });
+
+            // Máscara dinâmica de Telefone
+            document.getElementById('telefone').addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, '');
+                if (v.length > 11) v = v.slice(0, 11);
+                if (v.length > 10) {
+                    e.target.value = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+                } else if (v.length > 5) {
+                    e.target.value = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+                } else if (v.length > 2) {
+                    e.target.value = v.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+                } else if (v.length > 0) {
+                    e.target.value = `(${v}`;
+                } else {
+                    e.target.value = '';
+                }
+            });
+
+            // Máscara dinâmica de CPF
+            document.getElementById('cpf').addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, '');
+                if (v.length > 11) v = v.slice(0, 11);
+                if (v.length > 9) {
+                    e.target.value = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/, '$1.$2.$3-$4');
+                } else if (v.length > 6) {
+                    e.target.value = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+                } else if (v.length > 3) {
+                    e.target.value = v.replace(/^(\d{3})(\d{1,3})$/, '$1.$2');
+                } else {
+                    e.target.value = v;
+                }
             });
         });
 
@@ -187,7 +237,7 @@
             if (!usuarios || usuarios.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">
+                        <td colspan="6" class="text-center py-4 text-muted">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum usuário cadastrado.
                         </td>
@@ -202,8 +252,10 @@
                         <div class="fw-semibold text-dark">${escapeHtml(usuario.nome)}</div>
                         <small class="text-muted font-monospace" style="font-size: 0.75rem;">${usuario.id}</small>
                     </td>
-                    <td>${escapeHtml(usuario.telefone)}</td>
-                    <td>${escapeHtml(usuario.endereco)}</td>
+                    <td>${escapeHtml(usuario.cpf || '-')}</td>
+                    <td>${escapeHtml(usuario.email || '-')}</td>
+                    <td>${escapeHtml(usuario.telefone || '-')}</td>
+                    <td>${escapeHtml(usuario.endereco || '-')}</td>
                     <td class="text-center">
                         <button class="btn btn-outline-primary btn-sm me-1" title="Editar" onclick='iniciarEdicao(${JSON.stringify(usuario)})'>
                             <i class="bi bi-pencil"></i>
@@ -223,6 +275,9 @@
             const id = document.getElementById('usuarioId').value;
             const dados = {
                 nome: document.getElementById('nome').value.trim(),
+                cpf: document.getElementById('cpf').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                senha: document.getElementById('senha').value,
                 telefone: document.getElementById('telefone').value.trim(),
                 endereco: document.getElementById('endereco').value.trim()
             };
@@ -255,19 +310,25 @@
         // Inicia o modo de edição no formulário
         function iniciarEdicao(usuario) {
             document.getElementById('usuarioId').value = usuario.id;
-            document.getElementById('nome').value = usuario.nome;
-            document.getElementById('telefone').value = usuario.telefone;
-            document.getElementById('endereco').value = usuario.endereco;
+            document.getElementById('nome').value = usuario.nome || '';
+            document.getElementById('cpf').value = usuario.cpf || '';
+            document.getElementById('email').value = usuario.email || '';
+            document.getElementById('senha').value = '';
+            document.getElementById('senha').placeholder = 'Digite a nova senha';
+            document.getElementById('telefone').value = usuario.telefone || '';
+            document.getElementById('endereco').value = usuario.endereco || '';
 
             document.getElementById('formTitle').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Usuário';
             document.getElementById('btnSalvar').innerHTML = '<i class="bi bi-check-circle me-1"></i> Atualizar';
             document.getElementById('btnCancelar').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Restaura formulário para criação
         function limparFormulario() {
             document.getElementById('usuarioId').value = '';
             document.getElementById('usuarioForm').reset();
+            document.getElementById('senha').placeholder = 'Mínimo 6 caracteres';
             document.getElementById('formTitle').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Novo Usuário';
             document.getElementById('btnSalvar').innerHTML = '<i class="bi bi-check-circle me-1"></i> Salvar';
             document.getElementById('btnCancelar').style.display = 'none';

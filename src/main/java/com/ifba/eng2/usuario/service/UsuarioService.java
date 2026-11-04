@@ -71,7 +71,10 @@ public class UsuarioService {
     public UsuarioResponseDTO criar(UsuarioRequestDTO request) {
         Usuario usuario = Usuario.builder()
                 .nome(request.getNome().trim())
-                .telefone(request.getTelefone().trim())
+                .cpf(request.getCpf().trim())
+                .email(request.getEmail().trim())
+                .senha(request.getSenha())
+                .telefone(request.getTelefone() != null && !request.getTelefone().isBlank() ? request.getTelefone().trim() : null)
                 .endereco(request.getEndereco().trim())
                 .build();
 
@@ -91,7 +94,12 @@ public class UsuarioService {
         Usuario usuario = buscarEntidadePorId(id);
 
         usuario.setNome(request.getNome().trim());
-        usuario.setTelefone(request.getTelefone().trim());
+        usuario.setCpf(request.getCpf().trim());
+        usuario.setEmail(request.getEmail().trim());
+        if (request.getSenha() != null && !request.getSenha().isBlank()) {
+            usuario.setSenha(request.getSenha());
+        }
+        usuario.setTelefone(request.getTelefone() != null && !request.getTelefone().isBlank() ? request.getTelefone().trim() : null);
         usuario.setEndereco(request.getEndereco().trim());
 
         Usuario atualizado = usuarioRepository.save(usuario);

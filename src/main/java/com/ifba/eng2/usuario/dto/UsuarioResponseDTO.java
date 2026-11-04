@@ -19,11 +19,13 @@ public class UsuarioResponseDTO {
 
     private UUID id;
     private String nome;
+    private String cpf;
+    private String email;
     private String telefone;
     private String endereco;
 
     /**
-     * Mapeia uma entidade Usuario para o DTO de resposta.
+     * Mapeia uma entidade Usuario para o DTO de resposta omitindo a senha.
      *
      * @param usuario Entidade do usuário
      * @return DTO correspondente ou null caso o usuário seja nulo
@@ -35,6 +37,8 @@ public class UsuarioResponseDTO {
         return UsuarioResponseDTO.builder()
                 .id(usuario.getId())
                 .nome(usuario.getNome())
+                .cpf(usuario.getCpf())
+                .email(usuario.getEmail())
                 .telefone(usuario.getTelefone())
                 .endereco(usuario.getEndereco())
                 .build();
